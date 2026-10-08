@@ -5,6 +5,30 @@ mirror="https://raw.githubusercontent.com/sbwml/r4s_build_script/refs/heads/mast
 github="github.com"
 gitea="git.cooluc.com"
 
+# ── 抗抖动：家用链路对新建立的 TLS 连接有约 10% 的瞬时失败率（GnuTLS handshake failed），
+# 而全链路约有 40 处 git clone，不重试则几乎每轮都会静默丢包或整步失败，故对 clone 统一做有限重试。
+# 只清理「本轮克隆新建出来」的目录，绝不触碰重试前就已存在的路径。
+git() {
+  if [ "${1:-}" != "clone" ]; then command git "$@"; return $?; fi
+  local dest="${!#}" existed=0 n=0 rc=0
+  case "$dest" in -*|http*|git@*|"") dest="" ;; esac
+  if [ -n "$dest" ] && [ -e "$dest" ]; then existed=1; fi
+  while :; do
+    if command git "$@"; then
+      return 0
+    else
+      rc=$?
+    fi
+    n=$((n + 1))
+    if [ "$n" -ge 5 ]; then break; fi
+    if [ -n "$dest" ] && [ "$existed" -eq 0 ] && [ -d "$dest" ]; then rm -rf -- "$dest"; fi
+    echo "::warning::git clone 第 $n 次失败(rc=$rc)，5 秒后重试：${dest:-$*}" >&2
+    sleep 5
+  done
+  return "$rc"
+}
+export -f git
+
 # lto jobserver
 sed -i 's/-flto=auto/-flto=jobserver/g' include/package.mk
 
