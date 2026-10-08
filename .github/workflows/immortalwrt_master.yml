@@ -15,7 +15,7 @@ on:
   #   types: started
 
 env:
-  USER_NAME: xuanranran
+  USER_NAME: shihairu22
   REPO_BRANCH: master
   CONFIG_FILE: configs/immortalwrt/immortalwrt.config
   DIY_SH: scripts/immortalwrt/immortalwrt.sh
@@ -64,8 +64,8 @@ jobs:
         echo "OPENWRTROOT=$PWD" >> $GITHUB_ENV
         echo "OPENWRTROOT=$PWD" >> $GITHUB_OUTPUT
         mkdir customfeeds
-        git clone --depth=1 https://github.com/xuanranran/openwrt-package customfeeds/lovepackages
-        git clone --depth=1 https://github.com/xuanranran/rely customfeeds/loverely
+        git clone --depth=1 https://github.com/$USER_NAME/openwrt-package customfeeds/lovepackages
+        git clone --depth=1 https://github.com/$USER_NAME/rely customfeeds/loverely
         git clone --depth=1 https://github.com/$USER_NAME/packages -b $REPO_BRANCH customfeeds/packages
         git clone --depth=1 https://github.com/$USER_NAME/luci -b $REPO_BRANCH customfeeds/luci
         git clone --depth=1 https://github.com/openwrt/routing -b $REPO_BRANCH customfeeds/routing
