@@ -299,7 +299,9 @@ jobs:
             gproxy api "repos/$REPO/releases/$RID/assets?per_page=100" --jq '.[].name' > $TMPD/have.txt \
               || { echo "::error::资产列表取不到，中止"; exit 1; }
           fi
-          ls -1 "$DIR" > $TMPD/want.txt
+          # 只枚举文件：旧写法 ls -1 会把 packages/ 之类的子目录也算进「应有资产」，
+          # 而上传只传文件 —— 那个目录永远补传不成，导致每轮卡在「仍缺 1 个资产，不转正」。
+          find "$DIR" -maxdepth 1 -type f -printf '%f\n' > $TMPD/want.txt
           grep -vxF -f $TMPD/have.txt $TMPD/want.txt > $TMPD/miss.txt || true
           echo "应有 $(wc -l < $TMPD/want.txt) 个 / 已有 $(wc -l < $TMPD/have.txt) 个 / 需补传 $(wc -l < $TMPD/miss.txt) 个"
 
