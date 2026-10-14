@@ -24,7 +24,7 @@ git() {
 }
 export -f git
 
-mkdir package/community
+mkdir -p package/community
 pushd package/community
 
 # Add openwrt-packages
@@ -78,17 +78,3 @@ rm -rf package/base-files/files/etc/banner
 cp -f $GITHUB_WORKSPACE/data/banner package/base-files/files/etc/banner
 cp -f $GITHUB_WORKSPACE/data/02_network target/linux/x86/base-files/etc/board.d/02_network
 
-# Add private cnspeedtest packages
-rm -rf package/community/openwrt-cnspeedtest
-if [ -z "$CNSPEEDTEST_TOKEN" ]; then
-  echo "CNSPEEDTEST_TOKEN is not configured; skipping private cnspeedtest packages"
-else
-  CNSPEEDTEST_AUTH="$(printf 'x-access-token:%s' "$CNSPEEDTEST_TOKEN" | base64 | tr -d '\n')"
-  GIT_CONFIG_COUNT=1 \
-  GIT_CONFIG_KEY_0=http.https://github.com/.extraheader \
-  GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $CNSPEEDTEST_AUTH" \
-  git clone --depth=1 --branch main \
-    https://github.com/shihairu22/openwrt-cnspeedtest.git \
-    package/community/openwrt-cnspeedtest
-  unset CNSPEEDTEST_AUTH
-fi
