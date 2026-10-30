@@ -85,9 +85,9 @@ rm -rf package/network/config/firewall4/patches
 # firewall4
 mkdir -p package/network/config/firewall4/patches
 # fullcone
-curl -s $mirror/openwrt/patch/firewall4/firewall4_patches/999-01-firewall4-add-fullcone-support.patch > package/network/config/firewall4/patches/999-01-firewall4-add-fullcone-support.patch
+cp -f "$GITHUB_WORKSPACE/data/patches/firewall4/999-01-firewall4-add-fullcone-support.patch" package/network/config/firewall4/patches/999-01-firewall4-add-fullcone-support.patch
 # bcm fullcone
-curl -s $mirror/openwrt/patch/firewall4/firewall4_patches/999-02-firewall4-add-bcm-fullconenat-support.patch > package/network/config/firewall4/patches/999-02-firewall4-add-bcm-fullconenat-support.patch
+cp -f "$GITHUB_WORKSPACE/data/patches/firewall4/999-02-firewall4-add-bcm-fullconenat-support.patch" package/network/config/firewall4/patches/999-02-firewall4-add-bcm-fullconenat-support.patch
 # fix flow offload
 curl -s $mirror/openwrt/patch/firewall4/firewall4_patches/001-fix-fw4-flow-offload.patch > package/network/config/firewall4/patches/001-fix-fw4-flow-offload.patch
 # add custom nft command support
@@ -96,15 +96,13 @@ curl -s $mirror/openwrt/patch/firewall4/100-openwrt-firewall4-add-custom-nft-com
 sed -i 's|$(PROJECT_GIT)/project|https://github.com/openwrt|g' package/network/config/firewall4/Makefile
 # libnftnl
 mkdir -p package/libs/libnftnl/patches
-curl -s $mirror/openwrt/patch/firewall4/libnftnl/0001-libnftnl-add-fullcone-expression-support.patch > package/libs/libnftnl/patches/0001-libnftnl-add-fullcone-expression-support.patch
-curl -s $mirror/openwrt/patch/firewall4/libnftnl/0002-libnftnl-add-brcm-fullcone-support.patch > package/libs/libnftnl/patches/0002-libnftnl-add-brcm-fullcone-support.patch
-cp -f "$GITHUB_WORKSPACE/data/patches/libnftnl/0003-libnftnl-fullcone-adapt-setter-api.patch" package/libs/libnftnl/patches/0003-libnftnl-fullcone-adapt-setter-api.patch
-# fix build on rhel9
-sed -i '/^PKG_BUILD_FLAGS[[:space:]]*:/aPKG_FIXUP:=autoreconf' package/libs/libnftnl/Makefile
+# Remove the previous replacements when rerunning preparation on an existing tree.
+rm -f package/libs/libnftnl/patches/{0001-libnftnl-add-fullcone-expression-support,0002-libnftnl-add-brcm-fullcone-support,0003-libnftnl-fullcone-adapt-setter-api}.patch
+cp -f "$GITHUB_WORKSPACE/data/patches/libnftnl/002-libnftnl-add-brcm-fullcone-support.patch" package/libs/libnftnl/patches/
 # nftables
 mkdir -p package/network/utils/nftables/patches
-cp -f "$GITHUB_WORKSPACE/data/patches/nftables/0001-nftables-add-fullcone-expression-support.patch" package/network/utils/nftables/patches/0001-nftables-add-fullcone-expression-support.patch
-cp -f "$GITHUB_WORKSPACE/data/patches/nftables/0002-nftables-add-brcm-fullconenat-support.patch" package/network/utils/nftables/patches/0002-nftables-add-brcm-fullconenat-support.patch
+rm -f package/network/utils/nftables/patches/{0001-nftables-add-fullcone-expression-support,0002-nftables-add-brcm-fullconenat-support}.patch
+cp -f "$GITHUB_WORKSPACE/data/patches/nftables/003-nftables-add-brcm-fullconenat-support.patch" package/network/utils/nftables/patches/
 
 # FullCone module
 # rm -rf package/network/utils/fullconenat-nft
@@ -131,53 +129,33 @@ pushd customfeeds/luci
 popd
 
 # openssl urandom
-sed -i "/-openwrt/iOPENSSL_OPTIONS += enable-ktls '-DDEVRANDOM=\"\\\\\"/dev/urandom\\\\\"\"\'\n" package/libs/openssl/Makefile
+sed -i "/-openwrt/iOPENSSL_OPTIONS += '-DDEVRANDOM=\"\\\\\"/dev/urandom\\\\\"\"\'\n" package/libs/openssl/Makefile
 
 # openssl - lto
 sed -i "s/ no-lto//g" package/libs/openssl/Makefile
 sed -i "/TARGET_CFLAGS +=/ s/\$/ -ffat-lto-objects/" package/libs/openssl/Makefile
 
-# nghttp3
-rm -rf customfeeds/packages/libs/nghttp3
-git clone https://$github/sbwml/package_libs_nghttp3 customfeeds/packages/libs/nghttp3
-
-# ngtcp2
-rm -rf customfeeds/packages/libs/ngtcp2
-git clone https://$github/sbwml/package_libs_ngtcp2 customfeeds/packages/libs/ngtcp2
-
-# curl - fix passwall `time_pretransfer` check
-rm -rf customfeeds/packages/net/curl
-git clone https://$github/sbwml/feeds_packages_net_curl customfeeds/packages/net/curl
+# curl/nghttp3/ngtcp2: keep feed versions; HTTP/3 is enabled in the build config.
 
 # procps-ng - top
 sed -i 's/enable-skill/enable-skill --disable-modern-top/g' customfeeds/packages/utils/procps-ng/Makefile
 
 # TTYD
-sed -i 's/services/system/g' customfeeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
 sed -i '3 a\\t\t"order": 50,' customfeeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
 sed -i 's/procd_set_param stdout 1/procd_set_param stdout 0/g' customfeeds/packages/utils/ttyd/files/ttyd.init
 sed -i 's/procd_set_param stderr 1/procd_set_param stderr 0/g' customfeeds/packages/utils/ttyd/files/ttyd.init
 
-# UPnP
-rm -rf customfeeds/packages/net/miniupnpd
-git clone https://$gitea/sbwml/miniupnpd customfeeds/packages/net/miniupnpd -b v2.3.9
-sed -i 's/PKG_RELEASE:=1/PKG_RELEASE:=3/g' customfeeds/packages/net/miniupnpd/Makefile
+# UPnP: keep the current daemon and add sbwml configuration handling.
+patch --batch --forward -p1 -d customfeeds/packages < "$GITHUB_WORKSPACE/data/patches/packages/003-miniupnpd-sbwml-settings.patch"
 
-# nginx - latest version
-rm -rf customfeeds/packages/net/nginx
-git clone https://$github/sbwml/feeds_packages_net_nginx customfeeds/packages/net/nginx -b openwrt-25.12
+# nginx: keep current sources and add compression modules and LuCI tuning.
+patch --batch --forward -p1 -d customfeeds/packages < "$GITHUB_WORKSPACE/data/patches/packages/002-nginx-sbwml-features.patch"
+patch --batch --forward -p1 -d customfeeds/packages < "$GITHUB_WORKSPACE/data/patches/packages/004-nginx-http3-ktls.patch"
 sed -i 's/procd_set_param stdout 1/procd_set_param stdout 0/g;s/procd_set_param stderr 1/procd_set_param stderr 0/g' customfeeds/packages/net/nginx/files/nginx.init
 
 # nginx - ubus
 sed -i 's/ubus_parallel_req 2/ubus_parallel_req 6/g' customfeeds/packages/net/nginx/files-luci-support/60_nginx-luci-support
 sed -i '/ubus_parallel_req/a\        ubus_script_timeout 300;' customfeeds/packages/net/nginx/files-luci-support/60_nginx-luci-support
-
-# nginx - config
-curl -s $mirror/openwrt/nginx/luci.locations > customfeeds/packages/net/nginx/files-luci-support/luci.locations
-curl -s $mirror/openwrt/nginx/uci.conf.template > customfeeds/packages/net/nginx-util/files/uci.conf.template
-
-# nginx-util
-sed -i '/\/etc\/nginx\/uci.conf.template/d' customfeeds/packages/net/nginx-util/Makefile
 
 # apk
 mkdir -p package/system/apk/patches
@@ -210,9 +188,6 @@ curl -s $mirror/openwrt/patch/luci/0006-luci-mod-system-mounts-add-docker-direct
 curl -s $mirror/openwrt/patch/luci/0007-luci-mod-system-add-ucitrack-luci-mod-system-zram.js.patch | patch -p1
 patch -p1 < ../../../data/luci/0008-luci-mod-status-dmesg-add-ANSI-terminal-color-and-re.patch
 popd
-
-# Luci diagnostics.js
-sed -i "s/immortalwrt.org/www.baidu.com/g" customfeeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/diagnostics.js
 
 # luci-compat - remove extra line breaks from description
 sed -i '/<br \/>/d' customfeeds/luci/modules/luci-compat/luasrc/view/cbi/full_valuefooter.htm
@@ -313,12 +288,10 @@ git clone https://github.com/shihairu22/package_kernel_mt76 package/kernel/mt76
 # kernel patch
 # btf: silence btf module warning messages
 curl -s $mirror/openwrt/patch/kernel-6.18/btf/990-btf-silence-btf-module-warning-messages.patch > target/linux/generic/hack-6.18/990-btf-silence-btf-module-warning-messages.patch
-# cpu model
-curl -s $mirror/openwrt/patch/kernel-6.18/arm64/312-arm64-cpuinfo-Add-model-name-in-proc-cpuinfo-for-64bit-ta.patch > target/linux/generic/hack-6.18/312-arm64-cpuinfo-Add-model-name-in-proc-cpuinfo-for-64bit-ta.patch
 # bcm-fullcone
 curl -s $mirror/openwrt/patch/kernel-6.18/net/982-add-bcm-fullcone-support.patch > target/linux/generic/hack-6.18/982-add-bcm-fullcone-support.patch
 curl -s $mirror/openwrt/patch/kernel-6.18/net/983-add-bcm-fullcone-nft_masq-support.patch > target/linux/generic/hack-6.18/983-add-bcm-fullcone-nft_masq-support.patch
 # shortcut-fe
 curl -s $mirror/openwrt/patch/kernel-6.18/net/601-netfilter-export-udp_get_timeouts-function.patch > target/linux/generic/hack-6.18/601-netfilter-export-udp_get_timeouts-function.patch
 curl -s $mirror/openwrt/patch/kernel-6.18/net/952-net-conntrack-events-support-multiple-registrant.patch > target/linux/generic/hack-6.18/952-net-conntrack-events-support-multiple-registrant.patch
-curl -s $mirror/openwrt/patch/kernel-6.18/net/953-net-patch-linux-kernel-to-support-shortcut-fe.patch > target/linux/generic/hack-6.18/953-net-patch-linux-kernel-to-support-shortcut-fe.patch
+cp -f "$GITHUB_WORKSPACE/data/patches/kernel/953-net-patch-linux-kernel-to-support-shortcut-fe.patch" target/linux/generic/hack-6.18/953-net-patch-linux-kernel-to-support-shortcut-fe.patch
