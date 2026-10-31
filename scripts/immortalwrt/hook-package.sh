@@ -48,12 +48,14 @@ rm -rf customfeeds/packages/net/{*alist,chinadns-ng,dns2socks,dns2tcp,lucky,sing
 rm -rf customfeeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang customfeeds/packages/lang/golang
 
-# node - prebuilt Node 24 (nxhack), falling back to Node 22 (ImmortalWrt)
-rm -rf customfeeds/packages/lang/node/node
-node_mirror="https://raw.githubusercontent.com/xuanranran/feeds_packages_lang_node_node/refs/heads/main"
-mkdir -p customfeeds/packages/lang/node/node/scripts
-curl -fsSL "$node_mirror/Makefile" > customfeeds/packages/lang/node/node/Makefile
-curl -fsSL "$node_mirror/scripts/resolve.py" > customfeeds/packages/lang/node/node/scripts/resolve.py
+# node：用 feed 的源码包自己编（不再下载第三方预编译二进制）
+# gcc 16.2 + musl 的 fortify 与 LTO 冲突（vsnprintf always_inline），该包必须关 LTO；
+# 实测对比：no-lto 51.5MB / 启动53ms / fib30 60ms；LTO+关fortify 46.6MB / 53ms / 59ms，
+# 体积差 4.9MB 但性能无差别，且 LTO 版要牺牲 fortify 防护，故选 no-lto。
+node_mk="customfeeds/packages/lang/node/node/Makefile"
+if [ -f "$node_mk" ] && ! grep -q '^PKG_BUILD_FLAGS:=no-lto$' "$node_mk"; then
+  sed -i '/^PKG_NAME:=node$/a PKG_BUILD_FLAGS:=no-lto' "$node_mk"
+fi
 
 # Docker
 rm -rf customfeeds/luci/applications/luci-app-dockerman
