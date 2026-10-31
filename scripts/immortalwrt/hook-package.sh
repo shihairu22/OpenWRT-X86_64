@@ -140,10 +140,11 @@ cp -f $GITHUB_WORKSPACE/data/patches/quectel-cm/030-gcc16.patch customfeeds/pack
 
 sed -i '/^CONFIG_FAILOVER=y$/a CONFIG_SHORTCUT_FE=y' target/linux/x86/64/config-6.18
 
-# libnftnl
-rm -rf package/libs/libnftnl/patches
-# nftables
-rm -rf package/network/utils/nftables/patches
+# libnftnl / nftables：只删我们自己注入的补丁，保留上游的 fullcone 基础补丁
+# 上游 001(libnftnl)/002(nftables) 是基础表达式，我们的 002/003 要在它之上叠加；
+# 整目录 rm -rf 会把上游补丁一起删掉，导致 003 打不上（2026-10-31 构建失败原因）。
+rm -f package/libs/libnftnl/patches/002-libnftnl-add-brcm-fullcone-support.patch
+rm -f package/network/utils/nftables/patches/003-nftables-add-brcm-fullconenat-support.patch
 
 # 修改开源站地址 (按内容删除国内镜像, 避免行号漂移破坏 JSON)
 sed -i '\#mirror.iscas.ac.cn/kernel.org#d; \#mirrors.ustc.edu.cn/kernel.org#d; \#mirror.nju.edu.cn/kernel.org#d; \#mirrors.ustc.edu.cn/gnome#d; \#mirror.nju.edu.cn/gnome#d' scripts/projectsmirrors.json

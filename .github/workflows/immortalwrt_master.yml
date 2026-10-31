@@ -370,8 +370,8 @@ jobs:
             bin-archive
 
     - name: Clean workspace (free disk)
-      # 默认保留 openwrt/ 源码树、staging_dir（含交叉工具链）与 dl 软链，
-      # 下一轮直接增量编译；只清 build_dir / bin / tmp 这些体积大又易重建的东西。
+      # 默认保留 openwrt/ 源码树、build_dir、staging_dir 与 dl 软链，下一轮直接增量编译；
+      # 只清 bin / tmp（产物已进 release）。build_dir 约 64G，磁盘不够时用 full_clean。
       # 需要彻底清空时，手动触发时勾 full_clean。
       if: always()
       env:
@@ -384,7 +384,7 @@ jobs:
             echo "full_clean=true，整棵删除 ($(du -sh "$W" | cut -f1))"
             rm -rf -- "$W"
           else
-            for D in build_dir bin tmp staging_dir/target-*; do
+            for D in bin tmp; do
               for P in $W/$D; do
                 [ -e "$P" ] || continue
                 echo "清理 $P  $(du -sh "$P" 2>/dev/null | cut -f1)"
